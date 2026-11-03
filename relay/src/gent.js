@@ -1,11 +1,9 @@
 // The gent question: the actions Jev may choose from, and the request and
 // response shapes. Kept free of Workers APIs so it can be tested with node --test.
 
-export const ACTIONS_VERSION = "1";
-
 // Each action is a Choice option. Descriptions are what Jev reads, so they say
 // what the user wants to happen, not what NVDA calls the setting.
-export const ACTIONS = {
+const ACTIONS_V1 = {
 	speechRateFaster: "Make speech faster.",
 	speechRateSlower: "Make speech slower.",
 	punctuationMore: "Read out more punctuation and symbols.",
@@ -16,6 +14,15 @@ export const ACTIONS = {
 	typedWordsOff: "Stop speaking each word after it is typed.",
 	undo: "Undo the last change, or put things back to how they were before.",
 	none: "None of the above: the request is about something else, is unclear, or asks for something not listed.",
+};
+
+// Add-ons send the version they understand, so older installs never get an action they can't handle.
+export const ACTIONS_BY_VERSION = {
+	1: ACTIONS_V1,
+	2: {
+		...ACTIONS_V1,
+		help: "Asks what gent can do, what can be changed, or for help using gent.",
+	},
 };
 
 const SIZES = {
@@ -33,20 +40,22 @@ export class BadRequest extends Error {}
 export function parseDecideBody(body) {
 	if (typeof body !== "object" || body === null) throw new BadRequest("Body must be a JSON object.");
 	const { install_id: installId, text, recent = [], actions_version: version } = body;
-	if (version !== ACTIONS_VERSION) throw new BadRequest(`actions_version must be "${ACTIONS_VERSION}".`);
+	const actions = Object.hasOwn(ACTIONS_BY_VERSION, version) ? ACTIONS_BY_VERSION[version] : null;
+	if (!actions) throw new BadRequest(`actions_version must be one of ${Object.keys(ACTIONS_BY_VERSION).join(", ")}.`);
 	if (typeof installId !== "string" || !INSTALL_ID.test(installId)) throw new BadRequest("Invalid install_id.");
 	if (typeof text !== "string" || !text.trim() || text.length > MAX_TEXT) {
 		throw new BadRequest(`text must be 1 to ${MAX_TEXT} characters.`);
 	}
-	if (!Array.isArray(recent) || recent.length > MAX_RECENT || !recent.every((a) => a in ACTIONS && a !== "none")) {
+	const isChange = (a) => Object.hasOwn(actions, a) && !["none", "undo", "help"].includes(a);
+	if (!Array.isArray(recent) || recent.length > MAX_RECENT || !recent.every(isChange)) {
 		throw new BadRequest(`recent must be up to ${MAX_RECENT} action names.`);
 	}
-	return { installId, text: text.trim(), recent };
+	return { installId, text: text.trim(), recent, version };
 }
 
 // Builds the POST body for https://api.typesafe.ai/v1/systemone.
 // Both questions run in parallel; the add-on uses size only for adjustable settings.
-export function buildJevRequest({ text, recent }, model) {
+export function buildJevRequest({ text, recent, version }, model) {
 	return {
 		model,
 		state: { request: text, recent_changes: recent },
@@ -54,10 +63,11 @@ export function buildJevRequest({ text, recent }, model) {
 			action: {
 				type: "choice",
 				instructions:
-					"A screen reader user typed `request` to NVDA, asking it to change how it behaves. " +
+					"A screen reader user typed `request` to gent, a helper inside the NVDA screen reader that " +
+					"changes NVDA's settings when asked in plain words. " +
 					"`recent_changes` lists changes just made, most recent first; use it to resolve words like " +
 					"\"now\", \"that\", \"again\" or \"how it was before\". Which action does the user want?",
-				criteria: ACTIONS,
+				criteria: ACTIONS_BY_VERSION[version],
 			},
 			size: {
 				type: "choice",
@@ -70,14 +80,14 @@ export function buildJevRequest({ text, recent }, model) {
 
 // Turns Jev's response into what the add-on needs: the action, how sure Jev is,
 // the runners-up for "did you mean...?", and the size of change.
-export function readJevAnswer(jev) {
+export function readJevAnswer(jev, version) {
 	const { action, size } = jev.answers;
 	const alternatives = Object.entries(action.probabilities)
 		.sort(([, a], [, b]) => b - a)
 		.slice(0, 3)
 		.map(([name, probability]) => ({ action: name, probability }));
 	return {
-		actions_version: ACTIONS_VERSION,
+		actions_version: version,
 		action: action.choice,
 		confidence: action.confidence,
 		alternatives,

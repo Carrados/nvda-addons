@@ -155,6 +155,88 @@ DESCRIPTIONS = {
 	"typedWordsOff": _("stop speaking words as you type"),
 	# Translators: Completes "Did you mean ...?" in gent.
 	"undo": _("undo the last change"),
+	# Translators: Completes "Did you mean ...?" in gent.
+	"help": _("show what gent can do"),
+}
+
+
+def _overviewHtml() -> str:
+	"""What gent can do, with the current settings, for reading in browse mode."""
+	synth = getSynth()
+	if synth is not None and synth.isSupported("rate"):
+		# Translators: Current speech rate in gent's overview. {rate} is a number from 0 to 100.
+		rate = _("Speech rate is {rate} out of 100.").format(rate=synth.rate)
+	else:
+		# Translators: In gent's overview, when the current voice has no speed setting.
+		rate = _("This voice can't change speed.")
+	keyboard = config.conf["keyboard"]
+	current = [
+		rate,
+		_symbolLevelMessage(config.conf["speech"]["symbolLevel"]) + ".",
+		# Translators: In gent's overview. {setting} is e.g. "Only in edit controls" or "Off".
+		_("Speak typed characters: {setting}.").format(
+			setting=TypingEcho(keyboard["speakTypedCharacters"]).displayString,
+		),
+		# Translators: In gent's overview. {setting} is e.g. "Only in edit controls" or "Off".
+		_("Speak typed words: {setting}.").format(
+			setting=TypingEcho(keyboard["speakTypedWords"]).displayString
+		),
+	]
+	sections = [
+		(
+			# Translators: Heading in gent's overview.
+			_("What you can change"),
+			[
+				# Translators: Item in gent's overview.
+				_('Speech rate. Try "talk a bit faster", "slower" or "way too slow".'),
+				# Translators: Item in gent's overview.
+				_('Punctuation. Try "stop reading so much punctuation" or "read all the symbols".'),
+				# Translators: Item in gent's overview.
+				_('Typing echo. Try "stop saying every letter I type" or "speak words as I type".'),
+				# Translators: Item in gent's overview.
+				_('Undo. Try "undo that" or "go back to how it was". gent remembers its last five changes.'),
+			],
+		),
+		# Translators: Heading in gent's overview.
+		(_("Your settings now"), current),
+	]
+	html = [
+		# Translators: Main heading of gent's overview.
+		f"<h1>{_('What gent can do')}</h1>",
+		# Translators: Introduction in gent's overview.
+		f"<p>{_('Press NVDA+G, type what you want in your own words, and press Enter.')}</p>",
+	]
+	for heading, items in sections:
+		html.append(f"<h2>{heading}</h2><ul>")
+		html.extend(f"<li>{item}</li>" for item in items)
+		html.append("</ul>")
+	html.append(
+		"<p>{}</p>".format(
+			# Translators: End of gent's overview.
+			_(
+				"If gent isn't sure what you mean, it asks first. If it can't do something, it says so. "
+				'Type "help" at any time to see this again.',
+			),
+		),
+	)
+	return "".join(html)
+
+
+def _showOverview() -> None:
+	# Translators: Title of gent's overview window.
+	ui.browseableMessage(_overviewHtml(), _("gent help"), isHtml=True, closeButton=True)
+
+
+# Typed on their own, these show the overview without asking the relay.
+HELP_WORDS = {
+	"",
+	"help",
+	"what can you do",
+	"what can i do",
+	"what can i change",
+	"overview",
+	"give me an overview",
+	"how does this work",
 }
 
 
@@ -206,6 +288,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			gui.mainFrame.postPopup()
 		if result != wx.ID_OK or not text:
 			return
+		if text.lower().strip(" ?!.") in HELP_WORDS:
+			_showOverview()
+			return
 		self._busy = True
 		recent = [action for action, _undo in reversed(self._history)]
 		threading.Thread(target=self._decide, args=(text, recent), daemon=True).start()
@@ -230,7 +315,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			decision, action = logic.plan(answer, lastAction)
 			if decision == "none":
 				# Translators: Spoken when gent can't match the request to anything it can do.
-				ui.message(_("Sorry, I can't do that yet."))
+				ui.message(_('Sorry, I can\'t do that yet. Type "help" to hear what I can do.'))
 				return
 			if decision == "ask":
 				reply = MessageDialog.confirm(
@@ -246,6 +331,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					# Translators: Spoken when the user says no to "Did you mean".
 					ui.message(_("OK, nothing changed."))
 					return
+			if action == "help":
+				_showOverview()
+				return
 			ui.message(self._do(action, answer["size"] == "large"))
 		finally:
 			self._busy = False

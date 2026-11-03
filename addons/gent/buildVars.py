@@ -24,10 +24,10 @@ addon_info = AddonInfo(
 gent works out which setting you mean and changes it. Say "undo that" to put it back.
 A Blind Ant design-fiction experiment."""),
 	# version
-	addon_version='0.1.0',
+	addon_version='0.2.0',
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""First version: speech rate, punctuation level and typing echo, with undo."""),
+	addon_changelog=_("""Type "help", or ask "what can I change?", to see what gent can do and your current settings."""),
 	# Author(s)
 	addon_author='Carrados <200772005+Carrados@users.noreply.github.com>',
 	# URL for the add-on documentation support

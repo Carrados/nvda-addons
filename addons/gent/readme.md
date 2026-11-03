@@ -20,6 +20,9 @@ If it can't do what you asked, it says so.
 * Typing echo: speaking typed characters and typed words, on or off.
 * Undo: puts back the last change gent made. It remembers the last five.
 
+Type "help", or ask something like "what can I change?", to open an overview of what gent can do and your current settings.
+Read it with the arrow keys and close it with Escape.
+
 ## Privacy
 
 The first time you use gent, it asks before sending anything.

@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 
 RELAY_URL = "https://nvda-gent-relay.charlijotyrer.workers.dev/v1/decide"
-ACTIONS_VERSION = "1"
+ACTIONS_VERSION = "2"
 # Cloudflare blocks Python's default user agent, so gent always sends its own.
 USER_AGENT = "nvda-gent/{version}"
 

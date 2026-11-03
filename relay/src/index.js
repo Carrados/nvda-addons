@@ -63,6 +63,6 @@ export default {
 			return json({ error: "Could not reach the decision model." }, 502);
 		}
 		if (!upstream.ok) return json({ error: `Decision model returned ${upstream.status}.` }, 502);
-		return json(readJevAnswer(await upstream.json()));
+		return json(readJevAnswer(await upstream.json(), parsed.version));
 	},
 };
