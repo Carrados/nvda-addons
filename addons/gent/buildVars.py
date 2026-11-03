@@ -31,9 +31,9 @@ A Blind Ant design-fiction experiment."""),
 	# Author(s)
 	addon_author='Carrados <200772005+Carrados@users.noreply.github.com>',
 	# URL for the add-on documentation support
-	addon_url=None,
+	addon_url='https://github.com/Carrados/nvda-addons/tree/main/addons/gent',
 	# URL for the add-on repository where the source code can be found
-	addon_sourceURL=None,
+	addon_sourceURL='https://github.com/Carrados/nvda-addons',
 	# Documentation file name
 	addon_docFileName="readme.html",
 	# Minimum NVDA version supported (e.g. "2019.3.0", minor version is optional)
