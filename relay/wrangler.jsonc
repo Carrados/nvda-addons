@@ -1,0 +1,22 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "nvda-gent-relay",
+	"main": "src/index.js",
+	"compatibility_date": "2026-10-13",
+	// Off so nothing users type is kept in Cloudflare's logs.
+	"observability": { "enabled": false },
+	"vars": {
+		"TYPESAFE_MODEL": "jev-latest",
+		// Requests allowed per day across all users (about $0.60 of Jev at current prices).
+		"DAILY_CAP": "20000"
+	},
+	// TYPESAFE_API_KEY is a secret: add it with `npx wrangler secret put TYPESAFE_API_KEY`.
+	"ratelimits": [
+		{ "name": "INSTALL_LIMITER", "namespace_id": "7101", "simple": { "limit": 20, "period": 60 } },
+		{ "name": "IP_LIMITER", "namespace_id": "7102", "simple": { "limit": 60, "period": 60 } }
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "DAILY_COUNTER", "class_name": "DailyCounter" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["DailyCounter"] }]
+}
