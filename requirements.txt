@@ -1,0 +1,4 @@
+# Versions match the build and lint groups in template/pyproject.toml.
+scons==4.10.1
+Markdown==3.10
+ruff==0.14.5
