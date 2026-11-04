@@ -20,7 +20,7 @@ test("still accepts version 1 add-ons", () => {
 test("rejects bad requests", () => {
 	for (const body of [
 		null,
-		{ ...valid, actions_version: "3" },
+		{ ...valid, actions_version: "4" },
 		{ ...valid, actions_version: "toString" },
 		{ ...valid, install_id: "x" },
 		{ ...valid, text: "   " },
@@ -67,4 +67,14 @@ test("reads Jev's answer with the top three alternatives", () => {
 	assert.equal(answer.actions_version, "2");
 	assert.deepEqual(answer.alternatives.map((a) => a.action), ["punctuationLess", "none", "punctuationMore"]);
 	assert.equal(answer.size, "small");
+});
+
+test("version 3 offers the whole speech panel, help and none", () => {
+	const actions = ACTIONS_BY_VERSION[3];
+	for (const a of ["pitchHigher", "nextVoice", "nextSynth", "beepForCapsOn", "emojiOff", "commandKeysOn", "help", "none"]) {
+		assert.ok(a in actions, a);
+	}
+	assert.ok(Object.keys(actions).length <= 255);
+	assert.equal(parseDecideBody({ ...valid, actions_version: "3", recent: ["pitchHigher"] }).version, "3");
+	assert.throws(() => parseDecideBody({ ...valid, actions_version: "2", recent: ["pitchHigher"] }), BadRequest);
 });
