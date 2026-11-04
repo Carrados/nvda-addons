@@ -20,14 +20,14 @@ addon_info = AddonInfo(
 	addon_summary=_('gent'),
 	# Add-on description
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
-	addon_description=_("""Press NVDA+G and say what you want in plain words, such as "talk a bit faster" or "stop reading so much punctuation".
+	addon_description=_("""Press NVDA+G and say what you want in plain words, such as "talk a bit faster", "make the voice deeper" or "beep for capitals".
 gent works out which setting you mean and changes it. Say "undo that" to put it back.
 A Blind Ant design-fiction experiment."""),
 	# version
-	addon_version='0.2.0',
+	addon_version='0.3.0',
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""Type "help", or ask "what can I change?", to see what gent can do and your current settings."""),
+	addon_changelog=_("""gent can now change everything on NVDA's Speech settings panel: speed, rate boost, pitch, volume, inflection, voice, variant, synthesizer, punctuation, capitals, languages, Unicode, emoji and speech dictionaries. It can also turn speaking command keys on and off."""),
 	# Author(s)
 	addon_author='Carrados <200772005+Carrados@users.noreply.github.com>',
 	# URL for the add-on documentation support
@@ -67,7 +67,7 @@ i18nSources: list[str] = pythonSources + ["buildVars.py"]
 # Paths are relative to the addon directory, not to the root directory of your addon sources.
 # You can either list every file (using ""/") as a path separator,
 # or use glob expressions.
-excludedFiles: list[str] = []
+excludedFiles: list[str] = ["globalPlugins/gent/__pycache__/*"]
 
 # Base language for the NVDA add-on
 # If your add-on is written in a language other than english, modify this variable.

@@ -1,24 +1,21 @@
 # gent: say what you want NVDA to change, in plain words.
-# Jev, through the gent relay, picks which known action you mean; this code makes the change.
+# Jev, through the gent relay, picks which known action you mean; settings.py makes the change.
 
 import threading
 import uuid
 from collections.abc import Callable
 
 import addonHandler
-import characterProcessing
 import config
 import globalPluginHandler
 import gui
 import ui
 import wx
-from config.configFlags import TypingEcho
 from gui.message import MessageDialog, ReturnCode
 from logHandler import log
 from scriptHandler import script
-from synthDriverHandler import getSynth
 
-from . import logic, relay
+from . import logic, relay, settings
 
 addonHandler.initTranslation()
 
@@ -30,129 +27,8 @@ config.conf.spec["gent"] = {
 # How many changes gent remembers for "undo that" and for Jev's context.
 HISTORY = 5
 
-
-class CannotDo(Exception):
-	"""The action makes sense but can't be done right now; the message says why."""
-
-
-# Each action returns what to say, and a function that undoes it and returns what to say then.
-Change = tuple[str, Callable[[], str]]
-
-
-def _setRate(value: int) -> None:
-	synth = getSynth()
-	synth.rate = value
-	config.conf["speech"][synth.name]["rate"] = value
-
-
-def _changeRate(faster: bool, large: bool) -> Change:
-	synth = getSynth()
-	if synth is None or not synth.isSupported("rate"):
-		# Translators: Spoken when the current voice has no speed setting.
-		raise CannotDo(_("This voice can't change speed."))
-	old = synth.rate
-	new = logic.stepRate(old, faster, large)
-	if new == old:
-		# Translators: Spoken when speech is already at its fastest or slowest.
-		raise CannotDo(
-			_("Speech is already as fast as it goes.")
-			if faster
-			else _("Speech is already as slow as it goes.")
-		)
-	_setRate(new)
-
-	def undo() -> str:
-		_setRate(old)
-		# Translators: Spoken after changing speech rate. {rate} is a number from 0 to 100.
-		return _("Speech rate {rate}").format(rate=old)
-
-	return _("Speech rate {rate}").format(rate=new), undo
-
-
-def _symbolLevelMessage(level: int) -> str:
-	label = characterProcessing.SPEECH_SYMBOL_LEVEL_LABELS[characterProcessing.SymbolLevel(level)]
-	# Translators: Spoken after changing punctuation level. {level} is none, some, most or all.
-	return _("Punctuation {level}").format(level=label)
-
-
-def _changePunctuation(more: bool, large: bool) -> Change:
-	levels = [level.value for level in characterProcessing.CONFIGURABLE_SPEECH_SYMBOL_LEVELS]
-	old = config.conf["speech"]["symbolLevel"]
-	new = logic.stepLevel(levels, old, more, large)
-	if new == old:
-		# Translators: Spoken when punctuation is already at its highest or lowest level.
-		raise CannotDo(_("Punctuation is already at all.") if more else _("Punctuation is already at none."))
-	config.conf["speech"]["symbolLevel"] = new
-
-	def undo() -> str:
-		config.conf["speech"]["symbolLevel"] = old
-		return _symbolLevelMessage(old)
-
-	return _symbolLevelMessage(new), undo
-
-
-def _changeTypingEcho(key: str, label: str, on: bool) -> Change:
-	old = config.conf["keyboard"][key]
-	if on and old != TypingEcho.OFF.value:
-		# Translators: Spoken when typing echo is already on. {setting} is e.g. "Speak typed characters".
-		raise CannotDo(_("{setting} is already on.").format(setting=label))
-	if not on and old == TypingEcho.OFF.value:
-		# Translators: Spoken when typing echo is already off. {setting} is e.g. "Speak typed characters".
-		raise CannotDo(_("{setting} is already off.").format(setting=label))
-	# "On" means NVDA's default, which is only in edit controls.
-	new = TypingEcho.EDIT_CONTROLS.value if on else TypingEcho.OFF.value
-	config.conf["keyboard"][key] = new
-
-	def message(value: int) -> str:
-		return f"{label} {TypingEcho(value).displayString}"
-
-	def undo() -> str:
-		config.conf["keyboard"][key] = old
-		return message(old)
-
-	return message(new), undo
-
-
-def _typedCharacters(on: bool) -> Callable[[bool], Change]:
-	# Translators: Name of NVDA's typed characters setting, as spoken by gent.
-	return lambda large: _changeTypingEcho("speakTypedCharacters", _("Speak typed characters"), on)
-
-
-def _typedWords(on: bool) -> Callable[[bool], Change]:
-	# Translators: Name of NVDA's typed words setting, as spoken by gent.
-	return lambda large: _changeTypingEcho("speakTypedWords", _("Speak typed words"), on)
-
-
-# Every action the relay can return except undo and none. Each takes "large" (a big change was asked for).
-ACTIONS: dict[str, Callable[[bool], Change]] = {
-	"speechRateFaster": lambda large: _changeRate(True, large),
-	"speechRateSlower": lambda large: _changeRate(False, large),
-	"punctuationMore": lambda large: _changePunctuation(True, large),
-	"punctuationLess": lambda large: _changePunctuation(False, large),
-	"typedCharactersOn": _typedCharacters(True),
-	"typedCharactersOff": _typedCharacters(False),
-	"typedWordsOn": _typedWords(True),
-	"typedWordsOff": _typedWords(False),
-}
-
 # What gent says when asking "Did you mean ...?"
-DESCRIPTIONS = {
-	# Translators: Completes "Did you mean ...?" in gent.
-	"speechRateFaster": _("make speech faster"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"speechRateSlower": _("make speech slower"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"punctuationMore": _("read more punctuation"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"punctuationLess": _("read less punctuation"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"typedCharactersOn": _("speak characters as you type"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"typedCharactersOff": _("stop speaking characters as you type"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"typedWordsOn": _("speak words as you type"),
-	# Translators: Completes "Did you mean ...?" in gent.
-	"typedWordsOff": _("stop speaking words as you type"),
+DESCRIPTIONS = {name: action.description for name, action in settings.ACTIONS.items()} | {
 	# Translators: Completes "Did you mean ...?" in gent.
 	"undo": _("undo the last change"),
 	# Translators: Completes "Did you mean ...?" in gent.
@@ -162,43 +38,47 @@ DESCRIPTIONS = {
 
 def _overviewHtml() -> str:
 	"""What gent can do, with the current settings, for reading in browse mode."""
-	synth = getSynth()
-	if synth is not None and synth.isSupported("rate"):
-		# Translators: Current speech rate in gent's overview. {rate} is a number from 0 to 100.
-		rate = _("Speech rate is {rate} out of 100.").format(rate=synth.rate)
-	else:
-		# Translators: In gent's overview, when the current voice has no speed setting.
-		rate = _("This voice can't change speed.")
-	keyboard = config.conf["keyboard"]
-	current = [
-		rate,
-		_symbolLevelMessage(config.conf["speech"]["symbolLevel"]) + ".",
-		# Translators: In gent's overview. {setting} is e.g. "Only in edit controls" or "Off".
-		_("Speak typed characters: {setting}.").format(
-			setting=TypingEcho(keyboard["speakTypedCharacters"]).displayString,
-		),
-		# Translators: In gent's overview. {setting} is e.g. "Only in edit controls" or "Off".
-		_("Speak typed words: {setting}.").format(
-			setting=TypingEcho(keyboard["speakTypedWords"]).displayString
-		),
-	]
 	sections = [
 		(
 			# Translators: Heading in gent's overview.
 			_("What you can change"),
 			[
 				# Translators: Item in gent's overview.
-				_('Speech rate. Try "talk a bit faster", "slower" or "way too slow".'),
+				_('Speed. Try "talk a bit faster", "way too slow" or "even faster than the maximum".'),
 				# Translators: Item in gent's overview.
-				_('Punctuation. Try "stop reading so much punctuation" or "read all the symbols".'),
+				_(
+					'Pitch, volume and inflection. Try "make the voice deeper", "I can\'t hear it" or "she sounds flat".'
+				),
 				# Translators: Item in gent's overview.
-				_('Typing echo. Try "stop saying every letter I type" or "speak words as I type".'),
+				_('Voice, variant and synthesizer. Try "use a different voice" or "switch speech engine".'),
+				# Translators: Item in gent's overview.
+				_(
+					'Punctuation and symbols. Try "stop reading punctuation", "read every symbol" or "stop reading emoji names".'
+				),
+				# Translators: Item in gent's overview.
+				_(
+					'Capitals. Try "beep for capitals", "say cap before capitals" or "make capitals stand out more".'
+				),
+				# Translators: Item in gent's overview.
+				_(
+					'Languages. Try "tell me when the language changes" or "stop switching accent for French".'
+				),
+				# Translators: Item in gent's overview.
+				_(
+					'Characters. Try "describe letters when I pause, like alpha bravo" or "fancy letters are read wrong".'
+				),
+				# Translators: Item in gent's overview.
+				_('Speech dictionaries. Try "turn off my pronunciation dictionary".'),
+				# Translators: Item in gent's overview.
+				_(
+					'Typing and keys. Try "stop saying every letter I type" or "tell me what keys I\'m pressing".'
+				),
 				# Translators: Item in gent's overview.
 				_('Undo. Try "undo that" or "go back to how it was". gent remembers its last five changes.'),
 			],
 		),
 		# Translators: Heading in gent's overview.
-		(_("Your settings now"), current),
+		(_("Your settings now"), settings.currentSettings()),
 	]
 	html = [
 		# Translators: Main heading of gent's overview.
@@ -347,8 +227,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			# Translators: Spoken after gent undoes a change. {result} is the restored setting.
 			return _("Undone. {result}").format(result=undo())
 		try:
-			message, undo = ACTIONS[action](large)
-		except CannotDo as e:
+			message, undo = settings.ACTIONS[action].run(large)
+		except settings.CannotDo as e:
 			return str(e)
 		self._history = (self._history + [(action, undo)])[-HISTORY:]
 		return message

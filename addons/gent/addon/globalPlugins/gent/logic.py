@@ -4,18 +4,36 @@
 # At or above this, gent acts without asking.
 CONFIDENT = 0.7
 
-# The opposite of each action. Undoing a change and asking for its opposite
+# Pairs of actions that undo each other. Undoing a change and asking for its opposite
 # have the same effect, so Jev splitting between the two is not real doubt.
-OPPOSITES = {
-	"speechRateFaster": "speechRateSlower",
-	"speechRateSlower": "speechRateFaster",
-	"punctuationMore": "punctuationLess",
-	"punctuationLess": "punctuationMore",
-	"typedCharactersOn": "typedCharactersOff",
-	"typedCharactersOff": "typedCharactersOn",
-	"typedWordsOn": "typedWordsOff",
-	"typedWordsOff": "typedWordsOn",
-}
+_PAIRS = [
+	("speechRateFaster", "speechRateSlower"),
+	("rateBoostOn", "rateBoostOff"),
+	("pitchHigher", "pitchLower"),
+	("volumeLouder", "volumeQuieter"),
+	("inflectionMore", "inflectionLess"),
+	("nextVoice", "previousVoice"),
+	("nextVariant", "previousVariant"),
+	("punctuationMore", "punctuationLess"),
+	("capPitchHigher", "capPitchLower"),
+	("sayCapOn", "sayCapOff"),
+	("beepForCapsOn", "beepForCapsOff"),
+	("spellingOn", "spellingOff"),
+	("delayedDescriptionsOn", "delayedDescriptionsOff"),
+	("emojiOn", "emojiOff"),
+	("autoLanguageOn", "autoLanguageOff"),
+	("autoDialectOn", "autoDialectOff"),
+	("reportLanguageOn", "reportLanguageOff"),
+	("trustVoiceLanguageOn", "trustVoiceLanguageOff"),
+	("normalizationOn", "normalizationOff"),
+	("reportNormalizedOn", "reportNormalizedOff"),
+	("userDictionaryOn", "userDictionaryOff"),
+	("voiceDictionaryOn", "voiceDictionaryOff"),
+	("typedCharactersOn", "typedCharactersOff"),
+	("typedWordsOn", "typedWordsOff"),
+	("commandKeysOn", "commandKeysOff"),
+]
+OPPOSITES = {a: b for a, b in _PAIRS} | {b: a for a, b in _PAIRS}
 
 
 def plan(answer: dict, lastAction: str | None) -> tuple[str, str]:
@@ -25,18 +43,19 @@ def plan(answer: dict, lastAction: str | None) -> tuple[str, str]:
 		return ("none", "none")
 	if answer["confidence"] >= CONFIDENT:
 		return ("act", action)
-	if lastAction is not None:
-		sameEffect = {"undo", OPPOSITES[lastAction]}
+	opposite = OPPOSITES.get(lastAction)
+	if opposite is not None:
+		sameEffect = {"undo", opposite}
 		top = answer["alternatives"][:2]
 		if {a["action"] for a in top} == sameEffect and sum(a["probability"] for a in top) >= CONFIDENT:
 			return ("act", action)
 	return ("ask", action)
 
 
-def stepRate(rate: int, faster: bool, large: bool) -> int:
-	"""NVDA rates run from 0 to 100."""
+def stepValue(value: int, up: bool, large: bool, low: int = 0, high: int = 100) -> int:
+	"""Most voice settings run from 0 to 100. A big change moves further."""
 	step = 25 if large else 10
-	return max(0, min(100, rate + (step if faster else -step)))
+	return max(low, min(high, value + (step if up else -step)))
 
 
 def stepLevel(levels: list[int], current: int, more: bool, large: bool) -> int:

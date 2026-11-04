@@ -6,7 +6,8 @@ For example:
 
 * "Talk a bit faster", or "way too slow".
 * "Stop reading so much punctuation".
-* "Stop saying every letter I type".
+* "Stop saying every letter I type", or "tell me what keys I'm pressing".
+* "Make the voice deeper", or "beep for capitals".
 * "Undo that", or "go back to how it was before".
 
 gent works out which setting you mean and changes it, then tells you what it did.
@@ -15,10 +16,20 @@ If it can't do what you asked, it says so.
 
 ## What gent can change
 
-* Speech rate: faster or slower, by a little or a lot.
-* Punctuation level: none, some, most or all.
-* Typing echo: speaking typed characters and typed words, on or off.
+Everything on NVDA's Speech settings panel, plus typing and keys:
+
+* Speed: faster or slower, by a little or a lot, and rate boost.
+* Pitch, volume and inflection.
+* Voice, variant and synthesizer. gent never switches to "No speech".
+* Punctuation and symbols: more, less, none or all, and whether emoji and Unicode symbols are read by name.
+* Capitals: saying "cap", beeping, and how much the pitch rises.
+* Languages: automatic language and dialect switching, announcing language changes, what happens when the voice can't speak a language, and which language is used for symbols.
+* Characters: delayed descriptions such as "a, alpha", Unicode normalization, and reporting "normalized".
+* Speech dictionaries: your default dictionary and the voice's dictionary.
+* Typing and keys: speaking typed characters, typed words and command keys.
 * Undo: puts back the last change gent made. It remembers the last five.
+
+Settings on the voice, such as pitch or capitals, apply to the synthesizer you're using, as they do in NVDA's own settings.
 
 Type "help", or ask something like "what can I change?", to open an overview of what gent can do and your current settings.
 Read it with the arrow keys and close it with Escape.

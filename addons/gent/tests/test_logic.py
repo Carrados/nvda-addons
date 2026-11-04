@@ -44,11 +44,11 @@ class PlanTests(unittest.TestCase):
 
 
 class StepTests(unittest.TestCase):
-	def test_rate_steps_and_clamps(self):
-		self.assertEqual(logic.stepRate(50, True, False), 60)
-		self.assertEqual(logic.stepRate(50, False, True), 25)
-		self.assertEqual(logic.stepRate(95, True, False), 100)
-		self.assertEqual(logic.stepRate(5, False, True), 0)
+	def test_value_steps_and_clamps(self):
+		self.assertEqual(logic.stepValue(50, True, False), 60)
+		self.assertEqual(logic.stepValue(50, False, True), 25)
+		self.assertEqual(logic.stepValue(95, True, False), 100)
+		self.assertEqual(logic.stepValue(5, False, True), 0)
 
 	def test_level_steps_and_clamps(self):
 		self.assertEqual(logic.stepLevel(LEVELS, 100, True, False), 200)
@@ -58,6 +58,23 @@ class StepTests(unittest.TestCase):
 	def test_unknown_level_uses_nearest(self):
 		# NVDA also has a "character" level (1000) that isn't in the settings list.
 		self.assertEqual(logic.stepLevel(LEVELS, 1000, False, False), 200)
+
+
+class NewSettingsTests(unittest.TestCase):
+	def test_capital_pitch_uses_its_own_range(self):
+		self.assertEqual(logic.stepValue(-95, False, False, -100, 100), -100)
+
+	def test_every_pair_is_its_own_opposite(self):
+		for a, b in logic.OPPOSITES.items():
+			self.assertEqual(logic.OPPOSITES[b], a)
+
+	def test_undo_or_opposite_for_new_settings(self):
+		a = answer("undo", 0.5, [("undo", 0.55), ("beepForCapsOff", 0.4)])
+		self.assertEqual(logic.plan(a, "beepForCapsOn"), ("act", "undo"))
+
+	def test_last_action_without_an_opposite_asks(self):
+		a = answer("undo", 0.5, [("undo", 0.55), ("punctuationMore", 0.4)])
+		self.assertEqual(logic.plan(a, "punctuationNone"), ("ask", "undo"))
 
 
 if __name__ == "__main__":
