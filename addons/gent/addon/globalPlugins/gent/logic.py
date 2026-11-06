@@ -35,6 +35,25 @@ _PAIRS = [
 ]
 OPPOSITES = {a: b for a, b in _PAIRS} | {b: a for a, b in _PAIRS}
 
+# After NVDA+G, gent waits for one of these keys, as NVDA normalizes them. Any other key beeps and leaves.
+LAYER = {
+	"kb:space": "type",
+	"kb:enter": "type",
+	"kb:nvda+g": "type",
+	"kb:f": "form",
+	"kb:h": "help",
+	"kb:u": "undo",
+	"kb:escape": "exit",
+}
+
+
+def layerCommand(identifiers: list[str]) -> str | None:
+	"""What a key pressed after NVDA+G does, or None for a key that does nothing."""
+	for identifier in identifiers:
+		if identifier in LAYER:
+			return LAYER[identifier]
+	return None
+
 
 def plan(answer: dict, lastAction: str | None) -> tuple[str, str]:
 	"""Returns ("act", action), ("ask", action) or ("none", "none")."""

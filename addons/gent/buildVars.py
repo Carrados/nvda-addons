@@ -20,14 +20,16 @@ addon_info = AddonInfo(
 	addon_summary=_('gent'),
 	# Add-on description
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
-	addon_description=_("""Press NVDA+G and say what you want in plain words, such as "talk a bit faster", "make the voice deeper" or "beep for capitals".
+	addon_description=_("""Press NVDA+G, then Space, and say what you want in plain words, such as "talk a bit faster", "make the voice deeper" or "beep for capitals".
 gent works out which setting you mean and changes it. Say "undo that" to put it back.
+When a web form won't submit, press NVDA+G, then F, and gent tells you what you've missed.
 A Blind Ant design-fiction experiment."""),
 	# version
-	addon_version='0.3.0',
+	addon_version='0.4.1',
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""gent can now change everything on NVDA's Speech settings panel: speed, rate boost, pitch, volume, inflection, voice, variant, synthesizer, punctuation, capitals, languages, Unicode, emoji and speech dictionaries. It can also turn speaking command keys on and off."""),
+	addon_changelog=_("""New: gent can check a web form that won't submit. On the page, press NVDA+G, then F, or type "form help". gent lists what's stopping it, and anything worth checking, and takes you to the one you pick. The check happens on your computer; nothing on the form is sent anywhere.
+NVDA+G now waits for one key: Space to type what you want, F to check a form, H for help, U to undo, or Escape."""),
 	# Author(s)
 	addon_author='Carrados <200772005+Carrados@users.noreply.github.com>',
 	# URL for the add-on documentation support
