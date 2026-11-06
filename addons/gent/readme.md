@@ -1,6 +1,6 @@
 # gent
 
-Press NVDA+G, type what you want NVDA to change in plain words, and press Enter.
+Press NVDA+G, then Space. Type what you want NVDA to change in plain words, and press Enter.
 
 For example:
 
@@ -36,7 +36,7 @@ Read it with the arrow keys and close it with Escape.
 
 ## When a form won't submit
 
-On a web page in Chrome, Edge or Firefox, press NVDA+Shift+G, or press NVDA+G and type something like "what's wrong with this form?" or "what have I missed?".
+On a web page in Chrome, Edge or Firefox, press NVDA+G, then F. You can also press NVDA+G, then Space, and type something like "form help" or "what have I missed?".
 
 gent goes through every field on the page and lists:
 
@@ -58,9 +58,14 @@ gent also sends a random ID, made when it is first used, so that the relay can s
 
 ## Commands
 
-* NVDA+G: ask gent to change something.
-* NVDA+Shift+G: check the form on this web page.
+Press NVDA+G and gent says "gent", then waits for one key:
 
-You can change these keys in NVDA's Input gestures dialog, under "gent".
+* Space or Enter: type what you want, in your own words.
+* F: check the form on this web page.
+* H: help.
+* U: undo gent's last change.
+* Escape: leave without doing anything. Any other key beeps and leaves.
+
+You can change NVDA+G, or give the form check a key of its own, in NVDA's Input gestures dialog, under "gent".
 
 gent is a Blind Ant design-fiction experiment.

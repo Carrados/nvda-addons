@@ -7,7 +7,7 @@ from dataclasses import dataclass
 # Words that mean someone wants their form checked, typed into gent's prompt.
 _FORM = re.compile(r"\bforms?\b|\bsubmit")
 _TROUBLE = re.compile(
-	r"wrong|check|miss|submit|won'?t|will not|isn'?t|not work|doesn'?t|problem|error|stuck|next|finish|complete"
+	r"wrong|check|miss|submit|won'?t|will not|isn'?t|not work|doesn'?t|problem|error|stuck|next|finish|complete|help"
 )
 _MISSED = re.compile(r"\bwhat (have|did) i (miss|forget|leave out)|\bwhat'?s missing\b")
 

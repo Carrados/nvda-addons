@@ -77,5 +77,23 @@ class NewSettingsTests(unittest.TestCase):
 		self.assertEqual(logic.plan(a, "punctuationNone"), ("ask", "undo"))
 
 
+class LayerTests(unittest.TestCase):
+	"""Keys after NVDA+G, as NVDA's keyboard gestures give their normalized identifiers."""
+
+	def test_presets(self):
+		self.assertEqual(logic.layerCommand(["kb(desktop):f", "kb:f"]), "form")
+		self.assertEqual(logic.layerCommand(["kb(laptop):h", "kb:h"]), "help")
+		self.assertEqual(logic.layerCommand(["kb(desktop):u", "kb:u"]), "undo")
+		self.assertEqual(logic.layerCommand(["kb(desktop):escape", "kb:escape"]), "exit")
+
+	def test_space_enter_or_nvda_g_again_opens_the_box(self):
+		for key in ("space", "enter", "nvda+g"):
+			self.assertEqual(logic.layerCommand([f"kb(desktop):{key}", f"kb:{key}"]), "type")
+
+	def test_other_keys_do_nothing(self):
+		self.assertIsNone(logic.layerCommand(["kb(desktop):x", "kb:x"]))
+		self.assertIsNone(logic.layerCommand(["kb(desktop):shift+f", "kb:shift+f"]))
+
+
 if __name__ == "__main__":
 	unittest.main()

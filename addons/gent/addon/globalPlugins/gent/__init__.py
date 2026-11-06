@@ -9,6 +9,7 @@ import addonHandler
 import config
 import globalPluginHandler
 import gui
+import tones
 import ui
 import wx
 from gui.message import MessageDialog, ReturnCode
@@ -83,7 +84,7 @@ def _overviewHtml() -> str:
 			[
 				# Translators: Item in gent's overview.
 				_(
-					"When a web form won't submit, try \"what's wrong with this form?\" or press NVDA+Shift+G. "
+					'When a web form won\'t submit, press NVDA+G, then F. Or type "form help". '
 					"gent lists what's stopping it, and anything worth checking, and takes you to the one you pick."
 				),
 				# Translators: Item in gent's overview.
@@ -97,7 +98,9 @@ def _overviewHtml() -> str:
 		# Translators: Main heading of gent's overview.
 		f"<h1>{_('What gent can do')}</h1>",
 		# Translators: Introduction in gent's overview.
-		f"<p>{_('Press NVDA+G, type what you want in your own words, and press Enter.')}</p>",
+		f"<p>{_('Press NVDA+G, then Space. Type what you want in your own words, and press Enter.')}</p>",
+		# Translators: Introduction in gent's overview, listing the keys after NVDA+G.
+		f"<p>{_('After NVDA+G you can also press F to check a form, H for this help, U to undo, or Escape to leave.')}</p>",
 	]
 	for heading, items in sections:
 		html.append(f"<h2>{heading}</h2><ul>")
@@ -139,10 +142,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# (action, undo) for changes made this session, oldest first.
 		self._history: list[tuple[str, Callable[[], str]]] = []
 		self._busy = False
+		# True after NVDA+G, while gent waits for one key: see logic.LAYER.
+		self._layer = False
+
+	def getScript(self, gesture):
+		if not self._layer:
+			return super().getScript(gesture)
+		if getattr(gesture, "isModifier", False):
+			return None
+		self._layer = False
+		command = logic.layerCommand(gesture.normalizedIdentifiers)
+		return getattr(self, f"_layer_{command}", self._layer_unknown)
 
 	@script(
 		# Translators: Describes the gent command in NVDA's Input gestures dialog.
-		description=_("Tell gent, in plain words, what you want NVDA to change"),
+		description=_(
+			"gent: then press Space to type what you want, F to check a form, H for help or U to undo"
+		),
 		# Translators: Category for gent's commands in NVDA's Input gestures dialog.
 		category=_("gent"),
 		gesture="kb:NVDA+g",
@@ -150,18 +166,39 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_ask(self, gesture):
 		if self._busy:
 			return
-		# Remember the page now: once gent's dialog opens, the focus is no longer on it.
-		wx.CallAfter(self._prompt, forms.document())
+		self._layer = True
+		# Translators: Spoken after NVDA+G, while gent waits for the next key.
+		ui.message(_("gent"))
 
 	@script(
 		# Translators: Describes a gent command in NVDA's Input gestures dialog.
 		description=_("Check the form on this web page and list what's stopping it from submitting"),
 		category=_("gent"),
-		gesture="kb:NVDA+shift+g",
 	)
 	def script_checkForm(self, gesture):
 		doc = forms.document()
 		wx.CallAfter(forms.check, doc)
+
+	# What each key does after NVDA+G. Each takes the gesture, like a script.
+	def _layer_type(self, gesture):
+		# Remember the page now: once gent's dialog opens, the focus is no longer on it.
+		wx.CallAfter(self._prompt, forms.document())
+
+	def _layer_form(self, gesture):
+		self.script_checkForm(gesture)
+
+	def _layer_help(self, gesture):
+		wx.CallAfter(_showOverview)
+
+	def _layer_undo(self, gesture):
+		ui.message(self._do("undo", False))
+
+	def _layer_exit(self, gesture):
+		# Translators: Spoken when leaving gent's keys with Escape.
+		ui.message(_("Cancelled"))
+
+	def _layer_unknown(self, gesture):
+		tones.beep(200, 80)
 
 	def _prompt(self, doc=None) -> None:
 		gui.mainFrame.prePopup()

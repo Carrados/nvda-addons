@@ -159,6 +159,8 @@ class AskingTests(unittest.TestCase):
 			"what have I missed",
 			"check the form",
 			"why won't it submit",
+			"form help",
+			"help with this form",
 		):
 			self.assertTrue(asksForFormCheck(text), text)
 
