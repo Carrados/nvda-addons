@@ -15,7 +15,7 @@ from gui.message import MessageDialog, ReturnCode
 from logHandler import log
 from scriptHandler import script
 
-from . import logic, relay, settings
+from . import formcheck, forms, logic, relay, settings
 
 addonHandler.initTranslation()
 
@@ -75,6 +75,19 @@ def _overviewHtml() -> str:
 				),
 				# Translators: Item in gent's overview.
 				_('Undo. Try "undo that" or "go back to how it was". gent remembers its last five changes.'),
+			],
+		),
+		(
+			# Translators: Heading in gent's overview.
+			_("Forms"),
+			[
+				# Translators: Item in gent's overview.
+				_(
+					"When a web form won't submit, try \"what's wrong with this form?\" or press NVDA+Shift+G. "
+					"gent lists what's stopping it, and anything worth checking, and takes you to the one you pick."
+				),
+				# Translators: Item in gent's overview.
+				_("The form check happens on your computer. Nothing on the form is sent anywhere."),
 			],
 		),
 		# Translators: Heading in gent's overview.
@@ -137,22 +150,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_ask(self, gesture):
 		if self._busy:
 			return
-		wx.CallAfter(self._prompt)
+		# Remember the page now: once gent's dialog opens, the focus is no longer on it.
+		wx.CallAfter(self._prompt, forms.document())
 
-	def _prompt(self) -> None:
-		if not config.conf["gent"]["consented"]:
-			answer = MessageDialog.confirm(
-				# Translators: Shown the first time gent is used.
-				_(
-					"gent sends what you type to Blind Ant's relay and to TypeSafe, whose Jev model works out "
-					"which setting you mean. Nothing else on your computer is sent. Continue?",
-				),
-				# Translators: Title of gent's dialogs.
-				_("gent"),
-			)
-			if answer != ReturnCode.OK:
-				return
-			config.conf["gent"]["consented"] = True
+	@script(
+		# Translators: Describes a gent command in NVDA's Input gestures dialog.
+		description=_("Check the form on this web page and list what's stopping it from submitting"),
+		category=_("gent"),
+		gesture="kb:NVDA+shift+g",
+	)
+	def script_checkForm(self, gesture):
+		doc = forms.document()
+		wx.CallAfter(forms.check, doc)
+
+	def _prompt(self, doc=None) -> None:
 		gui.mainFrame.prePopup()
 		dialog = wx.TextEntryDialog(
 			gui.mainFrame,
@@ -171,6 +182,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if text.lower().strip(" ?!.") in HELP_WORDS:
 			_showOverview()
 			return
+		# Checked on this computer, so a form's contents never go to the relay.
+		if formcheck.asksForFormCheck(text):
+			forms.check(doc)
+			return
+		if not config.conf["gent"]["consented"]:
+			answer = MessageDialog.confirm(
+				# Translators: Shown the first time gent is used.
+				_(
+					"gent sends what you type to Blind Ant's relay and to TypeSafe, whose Jev model works out "
+					"which setting you mean. Nothing else on your computer is sent. Continue?",
+				),
+				# Translators: Title of gent's dialogs.
+				_("gent"),
+			)
+			if answer != ReturnCode.OK:
+				return
+			config.conf["gent"]["consented"] = True
 		self._busy = True
 		recent = [action for action, _undo in reversed(self._history)]
 		threading.Thread(target=self._decide, args=(text, recent), daemon=True).start()
