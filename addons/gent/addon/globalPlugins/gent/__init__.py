@@ -1,11 +1,14 @@
 # gent: say what you want NVDA to change, in plain words.
 # Jev, through the gent relay, picks which known action you mean; settings.py makes the change.
 
+import os
 import threading
+import time
 import uuid
 from collections.abc import Callable
 
 import addonHandler
+import api
 import config
 import globalPluginHandler
 import gui
@@ -16,7 +19,7 @@ from gui.message import MessageDialog, ReturnCode
 from logHandler import log
 from scriptHandler import script
 
-from . import formcheck, forms, logic, relay, settings
+from . import formcheck, forms, logic, recorder, relay, settings
 
 addonHandler.initTranslation()
 
@@ -100,7 +103,7 @@ def _overviewHtml() -> str:
 		# Translators: Introduction in gent's overview.
 		f"<p>{_('Press NVDA+G, then Space. Type what you want in your own words, and press Enter.')}</p>",
 		# Translators: Introduction in gent's overview, listing the keys after NVDA+G.
-		f"<p>{_('After NVDA+G you can also press F to check a form, H for this help, U to undo, or Escape to leave.')}</p>",
+		f"<p>{_('After NVDA+G you can also press F to check a form, R to record a page, H for this help, U to undo, or Escape to leave.')}</p>",
 	]
 	for heading, items in sections:
 		html.append(f"<h2>{heading}</h2><ul>")
@@ -144,8 +147,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._busy = False
 		# True after NVDA+G, while gent waits for one key: see logic.LAYER.
 		self._layer = False
+		# The page recording in progress, if any.
+		self._recorder: recorder.Recorder | None = None
 
 	def getScript(self, gesture):
+		if self._recorder is not None and self._recorder.running:
+			# Any key the user presses ends a recording. gent's own Tab presses never come through here.
+			if getattr(gesture, "isModifier", False):
+				return None
+			return self._stopRecording
 		if not self._layer:
 			return super().getScript(gesture)
 		if getattr(gesture, "isModifier", False):
@@ -157,7 +167,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(
 		# Translators: Describes the gent command in NVDA's Input gestures dialog.
 		description=_(
-			"gent: then press Space to type what you want, F to check a form, H for help or U to undo"
+			"gent: then press Space to type what you want, F to check a form, R to record a page, H for help or U to undo"
 		),
 		# Translators: Category for gent's commands in NVDA's Input gestures dialog.
 		category=_("gent"),
@@ -192,6 +202,59 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def _layer_undo(self, gesture):
 		ui.message(self._do("undo", False))
+
+	def _layer_record(self, gesture):
+		doc = forms.document()
+		if doc is None:
+			# Translators: Spoken when gent's page recorder is used away from a web page.
+			ui.message(_("Go to the web page you want to record first, then press NVDA+G, R."))
+			return
+		# Translators: Spoken when gent starts recording a page. Nothing else is spoken until it finishes.
+		ui.message(_("Recording this page silently. Press any key to stop."))
+		self._recorder = recorder.Recorder(doc, lambda text: wx.CallAfter(self._recorded, text))
+		# Let the message above reach the synthesizer before speech is muted.
+		wx.CallLater(500, self._recorder.start)
+
+	def _stopRecording(self, gesture):
+		if self._recorder is not None:
+			# Translators: Why a gent page recording ended.
+			self._recorder.stop(_("Stopped by a key press."))
+
+	def _recorded(self, text: str) -> None:
+		"""Saves the recording on this computer, then offers to share it as a link."""
+		path = _saveRecording(text)
+		steps = text.count("\nTab ")
+		share = MessageDialog.confirm(
+			# Translators: Asked when a gent page recording finishes. {path} is where it was saved.
+			_(
+				"Recording finished, with {steps} presses of Tab. It's saved in {path}.\n\n"
+				"Send it to Blind Ant's relay and copy a link to it? Anyone with the link can read it "
+				"for 7 days. It holds everything NVDA said, including anything typed into the page's forms."
+			).format(steps=steps, path=path),
+			_("gent"),
+			# Translators: Button when sharing a gent page recording.
+			okLabel=_("&Send and copy link"),
+			# Translators: Button when sharing a gent page recording.
+			cancelLabel=_("&Keep it on this computer"),
+		)
+		if share != ReturnCode.OK:
+			# Translators: Spoken when a gent page recording is kept on this computer only.
+			ui.message(_("Kept on this computer only."))
+			return
+		threading.Thread(target=self._share, args=(text,), daemon=True).start()
+
+	def _share(self, text: str) -> None:
+		try:
+			answer = relay.shareRecording(_installId(), text, addonHandler.getCodeAddon().version)
+		except relay.RelayError as e:
+			wx.CallAfter(ui.message, str(e))
+			return
+		except Exception:
+			log.exception("gent: unexpected error sharing a recording")
+			# Translators: Spoken when sharing a gent page recording fails unexpectedly.
+			wx.CallAfter(ui.message, _("Sorry, the recording couldn't be sent."))
+			return
+		wx.CallAfter(_linkReady, answer["url"])
 
 	def _layer_exit(self, gesture):
 		# Translators: Spoken when leaving gent's keys with Escape.
@@ -301,6 +364,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _finish(self, message: str) -> None:
 		self._busy = False
 		ui.message(message)
+
+
+def _saveRecording(text: str) -> str:
+	"""Keeps a copy in Documents\\gent recordings, so nothing is lost if it isn't shared."""
+	folder = os.path.join(os.path.expanduser("~"), "Documents", "gent recordings")
+	os.makedirs(folder, exist_ok=True)
+	path = os.path.join(folder, time.strftime("page %Y-%m-%d %H%M%S.txt"))
+	with open(path, "w", encoding="utf-8") as f:
+		f.write(text)
+	return path
+
+
+def _linkReady(url: str) -> None:
+	api.copyToClip(url)
+	# Translators: Spoken once a gent page recording has been shared.
+	ui.message(_("Link copied. Paste it to Claude, or anyone you want to check the page."))
 
 
 def _installId() -> str:

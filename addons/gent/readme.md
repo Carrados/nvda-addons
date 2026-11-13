@@ -49,11 +49,26 @@ Some sites only show their error messages as text on the page, without telling N
 
 The form check happens on your computer. Nothing on the form, and nothing you've typed into it, is sent anywhere.
 
+## Recording what NVDA says on a page
+
+To check how a page works with NVDA, or to show someone else, press NVDA+G, then R, on the page.
+
+gent says "Recording this page silently", then:
+
+1. Reads the whole page, as Say All would, without speaking it.
+2. Goes back to the top and presses Tab until it leaves the page or comes back round to the start. For each Tab it writes down what NVDA said.
+
+NVDA is silent while it records. Press any key to stop early.
+
+When it finishes, gent saves the recording in your Documents folder, under "gent recordings". It then asks whether to send it to Blind Ant's relay. If you say yes, gent copies a link to the clipboard. Paste it to Claude, or to anyone else, so they can read exactly what NVDA said and work out what's wrong with the page.
+
+Anyone with the link can read the recording. The relay deletes it after 7 days. A recording holds everything NVDA said, including anything typed into the page's forms, so check before you share one from a page with personal details.
+
 ## Privacy
 
 The first time you use gent, it asks before sending anything.
 What you type into gent (except asking it to check a form), and the names of gent's last few changes, go to Blind Ant's relay and on to TypeSafe's Jev model, which picks the setting you mean.
-Nothing else on your computer is sent. The relay keeps no logs.
+Nothing else on your computer is sent, unless you choose to share a page recording. The relay keeps no logs, and deletes shared recordings after 7 days.
 gent also sends a random ID, made when it is first used, so that the relay can stop any one install from sending too many requests.
 
 ## Commands
@@ -62,6 +77,7 @@ Press NVDA+G and gent says "gent", then waits for one key:
 
 * Space or Enter: type what you want, in your own words.
 * F: check the form on this web page.
+* R: record what NVDA says on this web page.
 * H: help.
 * U: undo gent's last change.
 * Escape: leave without doing anything. Any other key beeps and leaves.

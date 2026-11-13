@@ -16,7 +16,14 @@
 		{ "name": "IP_LIMITER", "namespace_id": "7102", "simple": { "limit": 60, "period": 60 } }
 	],
 	"durable_objects": {
-		"bindings": [{ "name": "DAILY_COUNTER", "class_name": "DailyCounter" }]
+		"bindings": [
+			{ "name": "DAILY_COUNTER", "class_name": "DailyCounter" },
+			// Page recordings users chose to share; each deletes itself after a week.
+			{ "name": "RECORDINGS", "class_name": "Recording" }
+		]
 	},
-	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["DailyCounter"] }]
+	"migrations": [
+		{ "tag": "v1", "new_sqlite_classes": ["DailyCounter"] },
+		{ "tag": "v2", "new_sqlite_classes": ["Recording"] }
+	]
 }
