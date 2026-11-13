@@ -43,6 +43,7 @@ LAYER = {
 	"kb:f": "form",
 	"kb:h": "help",
 	"kb:u": "undo",
+	"kb:r": "record",
 	"kb:escape": "exit",
 }
 

@@ -6,6 +6,8 @@ NVDA add-ons by [Blind Ant](https://blind-ant.com), one folder each under `addon
 
 Press NVDA+G, then Space, type what you want NVDA to change in plain words, and press Enter. "Talk a bit faster", "stop reading so much punctuation", "undo that". gent works out which setting you mean and changes it. Press NVDA+G, then H, to hear what it can do.
 
+To record what NVDA says on a page, press NVDA+G, then R, and share the link with Claude or anyone who can help.
+
 When a web form won't submit, press NVDA+G, then F. gent lists what's stopping it and takes you to the field. The check happens on your computer; nothing on the form is sent anywhere.
 
 * **Download:** the `.nvda-addon` file from the [latest release](https://github.com/Carrados/nvda-addons/releases/latest). Open it and NVDA offers to install it. It needs NVDA 2025.1 or later.
