@@ -121,9 +121,7 @@ class RadioTests(unittest.TestCase):
 
 	def test_optional_unanswered_is_worth_checking(self):
 		findings = formcheck.findProblems(self.yesNo("Do you drive?"))
-		self.assertEqual(
-			[(f.problem, f.message) for f in findings], [(False, "Do you drive?: nothing chosen")]
-		)
+		self.assertEqual([(f.problem, f.message) for f in findings], [(False, "Do you drive?: nothing chosen")])
 
 	def test_answered(self):
 		fields = self.yesNo("Do you drive?", required=True)
